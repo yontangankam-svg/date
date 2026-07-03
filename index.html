@@ -1,19 +1,387 @@
 <!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="stylesheet" href="styles.css" />
-    <title>Ask For Date</title>
-  </head>
-  <body>
-    <img src="assets/date.png" alt="date?" class="header-img" />
-    <div class="container" id="container">
-      <img src="assets/erm-fingers.gif" alt="please" class="image-1" />
-      <img src="assets/oh-yay.gif" alt="yes" class="image-2 hide" />
-      <button class="btn btn-yes">Yes</button>
-      <button class="btn btn-no">No</button>
-    </div>
-    <script src="main.js"></script>
-  </body>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>💖 Visual Novel Date Ultimate</title>
+
+<style>
+body{
+margin:0;
+font-family:Arial;
+background:linear-gradient(-45deg,#ffb6c1,#ff69b4,#ffc0cb,#ff85c0);
+background-size:400% 400%;
+animation:bg 8s infinite;
+overflow:hidden;
+text-align:center;
+color:white;
+}
+
+@keyframes bg{
+0%{background-position:0% 50%}
+50%{background-position:100% 50%}
+100%{background-position:0% 50%}
+}
+
+.step{display:none;padding-top:60px;}
+
+button{
+padding:15px 25px;
+border:none;
+border-radius:25px;
+font-size:18px;
+cursor:pointer;
+margin:10px;
+}
+
+#yes{
+background:white;
+color:hotpink;
+}
+
+#no{
+background:black;
+color:white;
+position:absolute;
+}
+
+select,input{
+padding:10px;
+border-radius:10px;
+border:none;
+margin:10px;
+}
+
+img{
+width:180px;
+border-radius:20px;
+box-shadow:0 0 20px rgba(255,255,255,0.5);
+}
+
+/* ❤️ hearts */
+.heart{
+position:fixed;
+top:-20px;
+font-size:20px;
+animation:fall linear forwards;
+}
+
+@keyframes fall{
+to{
+transform:translateY(100vh);
+opacity:0;
+}
+}
+</style>
+</head>
+
+<body>
+
+<!-- 🎵 MUSIQUE DE FOND - Autoplay -->
+<audio id="bgMusic" autoplay loop>
+<source src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_d0e6c6c3f5.mp3?filename=romantic-piano-ambient-110397.mp3">
+</audio>
+
+<!-- 🔊 SON CLIC (fallback audio element, utilisé en complément au synthé) -->
+<audio id="clickSound">
+<source src="https://cdn.pixabay.com/download/audio/2022/03/10/audio_4b4b8c8c3a.mp3?filename=click-124467.mp3">
+</audio>
+
+<!-- STEP 1 -->
+<div id="step1" class="step" style="display:block">
+<h1>💖 Bienvenue Abigail</h1>
+
+<img src="https://media.giphy.com/media/3oriO0OEd9QIDdllqo/giphy.gif" alt="sticker">
+
+<p>Les compos sont finies 😌</p>
+<p>On peut enfin se détendre...</p>
+
+<p>Veux-tu continuer ?</p>
+
+<!-- Note : on appelle playYes() sur Oui pour le jingle, playSwoosh() sur Non au survol -->
+<button onclick="playYes();step2()">Oui 💖</button>
+<button onmouseover="playSwoosh();runAway()" id="s1-no">Non 😏</button>
+</div>
+
+<!-- STEP 2 -->
+<div id="step2" class="step">
+<h1 id="text"></h1>
+
+<img src="https://media.giphy.com/media/fxsqOYnIMEefC/giphy.gif" alt="sticker">
+
+<p>Veux-tu passer un momement avec moi ? 💕</p>
+
+<button onclick="playYes();step3()">ca marche 💖</button>
+<button onmouseover="playSwoosh();runAway()" id="s2-no">je reste chez moi 😅</button>
+</div>
+
+<!-- STEP 3 -->
+<div id="step3" class="step">
+<h2>Choisis le lieu de la sortis 💖</h2>
+
+<img src="https://media.giphy.com/media/OkJat1YNdoD3W/giphy.gif" alt="sticker">
+
+<select id="locSelect">
+<option>Restaurant 🍽️</option>
+<option>Piscine 🏊</option>
+<option>Chez moi 🏠</option>
+<option>Chez elle 💕</option>
+<option>Glace 🍦</option>
+<option>Zoo 🐯</option>
+<option>Cinéma 🎬</option>
+<option>Bar 🍹</option>
+<option>Massage spécial 💆‍♀️</option>
+<option>Footing spécial 🏃‍♀️💖</option>
+<option>Cuisine du chef 👨‍🍳🔥</option>
+<option>Autre ✍️</option>
+</select>
+
+<br>
+
+<input id="locOther" placeholder="Autre lieu">
+<br>
+<input type="time" id="timeInput">
+
+<br>
+
+<button onclick="playYes();step4()">Valider 💖</button>
+</div>
+
+<!-- STEP 4 -->
+<div id="step4" class="step">
+<h1>💖 J'ai hâte de te revoir</h1>
+
+<img src="https://media.giphy.com/media/MDJ9IbxxvDUQM/giphy.gif" alt="sticker">
+
+<p>Rappelle-toi : je t'ai pas forcée 😄</p>
+<p>Ta sortis est confirmée 💌</p>
+</div>
+
+<script>
+/* ------------------------
+   WebAudio synth (no files needed)
+   - click: petit "tick"
+   - swoosh: bruit court pour fuite
+   - yesJingle: petit arpeggio heureux
+   ------------------------ */
+let audioCtx = null;
+let soundEnabled = true;
+
+function getAudioCtx() {
+  if (!audioCtx) {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    // resume on first user gesture (some browsers block audio until interaction)
+    const resumeOnce = () => {
+      if (audioCtx.state === 'suspended') audioCtx.resume().catch(()=>{});
+      document.removeEventListener('pointerdown', resumeOnce);
+    };
+    document.addEventListener('pointerdown', resumeOnce, { once: true });
+  }
+  return audioCtx;
+}
+
+// Click synth
+function playClickSynth() {
+  if (!soundEnabled) return;
+  const ctx = getAudioCtx();
+  const o = ctx.createOscillator();
+  const g = ctx.createGain();
+  o.type = 'square';
+  o.frequency.value = 1000;
+  g.gain.value = 0;
+  o.connect(g); g.connect(ctx.destination);
+  const now = ctx.currentTime;
+  g.gain.setValueAtTime(0.001, now);
+  g.gain.exponentialRampToValueAtTime(0.12, now + 0.008);
+  g.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+  o.start(now);
+  o.stop(now + 0.14);
+}
+
+// Swoosh synth (noise burst)
+function playSwooshSynth() {
+  if (!soundEnabled) return;
+  const ctx = getAudioCtx();
+  const dur = 0.22;
+  const buffer = ctx.createBuffer(1, ctx.sampleRate * dur, ctx.sampleRate);
+  const data = buffer.getChannelData(0);
+  for (let i = 0; i < data.length; i++) {
+    data[i] = (Math.random() * 2 - 1) * (1 - i / data.length);
+  }
+  const src = ctx.createBufferSource();
+  const g = ctx.createGain();
+  src.buffer = buffer;
+  src.connect(g); g.connect(ctx.destination);
+  g.gain.setValueAtTime(0.22, ctx.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + dur);
+  src.start();
+  src.stop(ctx.currentTime + dur + 0.02);
+}
+
+// Yes jingle: 3-note arpeggio
+function playYesJingle() {
+  if (!soundEnabled) return;
+  const ctx = getAudioCtx();
+  const now = ctx.currentTime;
+  const notes = [740, 880, 660]; // frequencies for a cheerful arpeggio
+  notes.forEach((freq, i) => {
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    o.type = 'sine';
+    o.frequency.value = freq;
+    o.connect(g); g.connect(ctx.destination);
+    const t = now + i * 0.12;
+    g.gain.setValueAtTime(0.001, t);
+    g.gain.exponentialRampToValueAtTime(0.18, t + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
+    o.start(t);
+    o.stop(t + 0.2);
+  });
+}
+
+/* ------------------------
+   Fallback audio element (already present in HTML)
+   We'll still trigger it so users without WebAudio get some feedback.
+   ------------------------ */
+function playClickFallback() {
+  try {
+    const el = document.getElementById('clickSound');
+    if (el) { el.currentTime = 0; el.play().catch(()=>{}); }
+  } catch(e){}
+}
+
+/* Combined click function (synth + fallback) */
+function playClick(){
+  playClickSynth();
+  playClickFallback();
+}
+
+/* direct wrappers for inline handlers */
+function playYes(){
+  playYesJingle();
+  playClickFallback();
+}
+function playSwoosh(){
+  playSwooshSynth();
+  // small click fallback so there's always an audible cue
+  playClickFallback();
+}
+
+/* ------------------------
+   Auto-start background music when page loads
+   Uses a small delay to ensure browser allows autoplay
+   ------------------------ */
+window.addEventListener('load', ()=>{
+  setTimeout(()=>{
+    const bg = document.getElementById('bgMusic');
+    if (bg) {
+      bg.play().catch((err)=>{
+        console.log('Autoplay blocked, waiting for user interaction...');
+        // Fallback: start music on first click if autoplay fails
+        document.addEventListener('click', ()=>{
+          bg.play().catch(()=>{});
+        }, {once: true});
+      });
+    }
+  }, 100);
+});
+
+/* ------------------------
+   Fleeing NON button
+   ------------------------ */
+function runAway(e){
+  // use event if available, otherwise default to random
+  const btn = (typeof event !== 'undefined' && event.target) ? event.target : (e ? e.target : null);
+  if(!btn) return;
+  // ensure the button is absolutely positioned so it can move
+  btn.style.position = 'absolute';
+  btn.style.top = Math.random()*70 + 5 + "vh";
+  btn.style.left = Math.random()*70 + 5 + "vw";
+}
+
+/* ------------------------
+   Animated text for step2
+   ------------------------ */
+function step2(){
+  document.getElementById("step1").style.display="none";
+  document.getElementById("step2").style.display="block";
+
+  let text="Merciiii Abigail 💖 je t'ai pas forcée hein haha 😄";
+  let i=0;
+  document.getElementById("text").innerHTML = "";
+
+  let interval=setInterval(()=>{
+    document.getElementById("text").innerHTML+=text[i];
+    i++;
+    if(i>=text.length) clearInterval(interval);
+  },50);
+}
+
+/* ------------------------
+   Step3: show hearts periodically
+   ------------------------ */
+let heartInterval = null;
+function step3(){
+  document.getElementById("step2").style.display="none";
+  document.getElementById("step3").style.display="block";
+
+  if (heartInterval) clearInterval(heartInterval);
+  heartInterval = setInterval(()=>{
+    let h=document.createElement("div");
+    h.innerHTML="❤️";
+    h.className="heart";
+    h.style.left=Math.random()*100+"vw";
+    h.style.animationDuration=(Math.random()*3+2)+"s";
+    document.body.appendChild(h);
+    setTimeout(()=>h.remove(),5000);
+  },200);
+}
+
+/* ------------------------
+   Final confirmation + heavier hearts
+   ------------------------ */
+function step4(){
+  // gather chosen location/time (optional use)
+  const loc = document.getElementById('locSelect').value;
+  const other = document.getElementById('locOther').value.trim();
+  const time = document.getElementById('timeInput').value;
+  const chosen = (other && other.length>0) ? other : loc;
+
+  // play a celebratory jingle and small pop
+  playYesJingle();
+  playClickSynth();
+
+  document.getElementById("step3").style.display="none";
+  document.getElementById("step4").style.display="block";
+
+  // spawn many hearts
+  for(let i=0;i<60;i++){
+    let c=document.createElement("div");
+    c.innerHTML="💖";
+    c.style.position="fixed";
+    c.style.left=Math.random()*100+"vw";
+    c.style.top="-20px";
+    c.style.fontSize = (12 + Math.random()*28) + "px";
+    document.body.appendChild(c);
+
+    // animate using a simple interval (keeps compatibility)
+    let fall=setInterval(()=>{
+      c.style.top = (c.offsetTop + (3 + Math.random()*6)) + "px";
+      if(c.offsetTop > window.innerHeight + 40){
+        c.remove();
+        clearInterval(fall);
+      }
+    },20);
+  }
+
+  // optionally print selection in console or show a toast
+  console.log("Date choisie:", chosen, "à", time);
+}
+
+/* small safety: stop heart spawns when navigating away */
+window.addEventListener('beforeunload', ()=> {
+  if (heartInterval) clearInterval(heartInterval);
+});
+</script>
+
+</body>
 </html>
